@@ -37,10 +37,13 @@ export default function Home() {
     reader.readAsBinaryString(file);
   };
 
-  const prsty = useMemo(() => {
-    return [...new Set(data.map((r) => r["Zpoždění (s)"]).filter(Boolean))];
-  }, [data]);
-
+ const prsty = [
+  ...new Set(
+    data
+      .map(item => String(item.Prst || "").trim())
+      .filter(item => item !== "" && item !== "undefined")
+  )
+].sort();
   const statuses = useMemo(() => {
     return [...new Set(data.map((r) => r["Stav"]).filter(Boolean))];
   }, [data]);
