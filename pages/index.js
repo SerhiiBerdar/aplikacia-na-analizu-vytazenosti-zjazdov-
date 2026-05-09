@@ -28,7 +28,9 @@ export default function Home() {
 
     reader.onload = (evt) => {
       const workbook = XLSX.read(evt.target.result, { type: "binary" });
+
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
       const json = XLSX.utils.sheet_to_json(sheet);
 
       setData(json);
@@ -37,13 +39,14 @@ export default function Home() {
     reader.readAsBinaryString(file);
   };
 
- const prsty = [
-  ...new Set(
-    data
-      .map(item => String(item.Prst || "").trim())
-      .filter(item => item !== "" && item !== "undefined")
-  )
-].sort();
+  const prsty = [
+    ...new Set(
+      data
+        .map((item) => String(item["Prst"] || "").trim())
+        .filter((item) => item !== "" && item !== "undefined")
+    ),
+  ].sort();
+
   const statuses = useMemo(() => {
     return [...new Set(data.map((r) => r["Stav"]).filter(Boolean))];
   }, [data]);
@@ -51,7 +54,7 @@ export default function Home() {
   const filteredData = useMemo(() => {
     return data.filter((row) => {
       const prstMatch =
-        selectedPrst === "ALL" || row["Zpoždění (s)"] === selectedPrst;
+        selectedPrst === "ALL" || row["Prst"] === selectedPrst;
 
       const statusMatch =
         selectedStatus === "ALL" || row["Stav"] === selectedStatus;
@@ -64,7 +67,8 @@ export default function Home() {
     const counts = {};
 
     filteredData.forEach((row) => {
-      const prst = row["Zpoždění (s)"] || "Unknown";
+      const prst = row["Prst"] || "Unknown";
+
       counts[prst] = (counts[prst] || 0) + 1;
     });
 
@@ -82,6 +86,7 @@ export default function Home() {
 
     filteredData.forEach((row) => {
       const status = row["Stav"] || "Unknown";
+
       counts[status] = (counts[status] || 0) + 1;
     });
 
@@ -95,11 +100,15 @@ export default function Home() {
     const counts = {};
 
     filteredData.forEach((row) => {
-      const created = row["Vytvořeno"];
+      const created = row["Datum vytvoreni"];
 
       if (!created) return;
 
-      const hour = Math.floor((created % 1) * 24);
+      const date = new Date(created);
+
+      if (isNaN(date)) return;
+
+      const hour = date.getHours();
 
       counts[hour] = (counts[hour] || 0) + 1;
     });
