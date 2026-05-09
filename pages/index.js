@@ -17,23 +17,41 @@ import {
 
 export default function Home() {
   const [data, setData] = useState([]);
-  const [selectedPrst, setSelectedPrst] = useState("ALL");
+  const [selectedPrst, setSelectedPrst] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState("ALL");
 
   const handleUpload = (e) => {
     const file = e.target.files[0];
+
     if (!file) return;
 
     const reader = new FileReader();
 
     reader.onload = (evt) => {
-      const workbook = XLSX.read(evt.target.result, { type: "binary" });
+      const workbook = XLSX.read(evt.target.result, {
+        type: "binary",
+        cellDates: true,
+      });
 
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-      const json = XLSX.utils.sheet_to_json(sheet);
+      const json = XLSX.utils.sheet_to_json(sheet, {
+        raw: false,
+      });
 
-      setData(json);
+      const cleaned = json.map((row) => ({
+        ...row,
+
+        Prst: String(row["Prst"] || "").trim(),
+
+        Stav: String(row["Stav"] || "").trim(),
+
+        "Datum vytvoreni": row["Datum vytvoreni"]
+          ? new Date(row["Datum vytvoreni"])
+          : null,
+      }));
+
+      setData(cleaned);
     };
 
     reader.readAsBinaryString(file);
@@ -42,7 +60,7 @@ export default function Home() {
   const prsty = [
     ...new Set(
       data
-        .map((item) => String(item["Prst"] || "").trim())
+        .map((item) => String(item.Prst || "").trim())
         .filter((item) => item !== "" && item !== "undefined")
     ),
   ].sort();
@@ -54,10 +72,12 @@ export default function Home() {
   const filteredData = useMemo(() => {
     return data.filter((row) => {
       const prstMatch =
-        selectedPrst === "ALL" || row["Prst"] === selectedPrst;
+        selectedPrst.length === 0 ||
+        selectedPrst.includes(row["Prst"]);
 
       const statusMatch =
-        selectedStatus === "ALL" || row["Stav"] === selectedStatus;
+        selectedStatus === "ALL" ||
+        row["Stav"] === selectedStatus;
 
       return prstMatch && statusMatch;
     });
@@ -106,7 +126,7 @@ export default function Home() {
 
       const date = new Date(created);
 
-      if (isNaN(date)) return;
+      if (isNaN(date.getTime())) return;
 
       const hour = date.getHours();
 
@@ -138,6 +158,7 @@ export default function Home() {
 
         <label className="uploadButton">
           Upload Excel
+
           <input
             type="file"
             accept=".xlsx,.xls"
@@ -146,18 +167,34 @@ export default function Home() {
         </label>
 
         <div className="filterBox">
-          <p>Prst</p>
+          <p>Prsty</p>
 
-          <select
-            value={selectedPrst}
-            onChange={(e) => setSelectedPrst(e.target.value)}
-          >
-            <option value="ALL">All</option>
-
+          <div className="checkboxList">
             {prsty.map((prst) => (
-              <option key={prst}>{prst}</option>
+              <label key={prst} className="checkboxItem">
+                <input
+                  type="checkbox"
+                  checked={selectedPrst.includes(prst)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedPrst([
+                        ...selectedPrst,
+                        prst,
+                      ]);
+                    } else {
+                      setSelectedPrst(
+                        selectedPrst.filter(
+                          (p) => p !== prst
+                        )
+                      );
+                    }
+                  }}
+                />
+
+                {prst}
+              </label>
             ))}
-          </select>
+          </div>
         </div>
 
         <div className="filterBox">
@@ -165,7 +202,9 @@ export default function Home() {
 
           <select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
+            onChange={(e) =>
+              setSelectedStatus(e.target.value)
+            }
           >
             <option value="ALL">All</option>
 
@@ -211,7 +250,11 @@ export default function Home() {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="#2563eb" />
+                <Bar
+                  dataKey="value"
+                  fill="#4f46e5"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -230,7 +273,9 @@ export default function Home() {
                   {statusStats.map((entry, index) => (
                     <Cell
                       key={index}
-                      fill={colors[index % colors.length]}
+                      fill={
+                        colors[index % colors.length]
+                      }
                     />
                   ))}
                 </Pie>
@@ -250,7 +295,13 @@ export default function Home() {
               <XAxis dataKey="hour" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#2563eb" />
+
+              <Line
+                type="monotone"
+                dataKey="count"
+                stroke="#4f46e5"
+                strokeWidth={3}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -263,20 +314,30 @@ export default function Home() {
               <thead>
                 <tr>
                   {filteredData[0] &&
-                    Object.keys(filteredData[0]).map((key) => (
-                      <th key={key}>{key}</th>
-                    ))}
+                    Object.keys(filteredData[0]).map(
+                      (key) => (
+                        <th key={key}>{key}</th>
+                      )
+                    )}
                 </tr>
               </thead>
 
               <tbody>
-                {filteredData.slice(0, 50).map((row, idx) => (
-                  <tr key={idx}>
-                    {Object.values(row).map((value, i) => (
-                      <td key={i}>{String(value)}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredData
+                  .slice(0, 50)
+                  .map((row, idx) => (
+                    <tr key={idx}>
+                      {Object.values(row).map(
+                        (value, i) => (
+                          <td key={i}>
+                            {value instanceof Date
+                              ? value.toLocaleString()
+                              : String(value)}
+                          </td>
+                        )
+                      )}
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
