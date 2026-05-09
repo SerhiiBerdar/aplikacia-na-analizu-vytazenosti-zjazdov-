@@ -166,37 +166,43 @@ export default function Home() {
           />
         </label>
 
-        <div className="filterBox">
-          <p>Prsty</p>
+      <div className="filterBox">
+  <details className="dropdownBox">
+    <summary>
+      Prsty ({selectedPrst.length})
+    </summary>
 
-          <div className="checkboxList">
-            {prsty.map((prst) => (
-              <label key={prst} className="checkboxItem">
-                <input
-                  type="checkbox"
-                  checked={selectedPrst.includes(prst)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedPrst([
-                        ...selectedPrst,
-                        prst,
-                      ]);
-                    } else {
-                      setSelectedPrst(
-                        selectedPrst.filter(
-                          (p) => p !== prst
-                        )
-                      );
-                    }
-                  }}
-                />
+    <div className="checkboxGrid">
+      {prsty.map((prst) => (
+        <label
+          key={prst}
+          className="checkboxItem"
+        >
+          <input
+            type="checkbox"
+            checked={selectedPrst.includes(prst)}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedPrst([
+                  ...selectedPrst,
+                  prst,
+                ]);
+              } else {
+                setSelectedPrst(
+                  selectedPrst.filter(
+                    (p) => p !== prst
+                  )
+                );
+              }
+            }}
+          />
 
-                {prst}
-              </label>
-            ))}
-          </div>
-        </div>
-
+          <span>{prst}</span>
+        </label>
+      ))}
+    </div>
+  </details>
+</div>
         <div className="filterBox">
           <p>Status</p>
 
